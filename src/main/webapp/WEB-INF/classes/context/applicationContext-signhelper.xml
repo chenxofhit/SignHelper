@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:aop="http://www.springframework.org/schema/aop" xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:mongo="http://www.springframework.org/schema/data/mongo" xmlns:p="http://www.springframework.org/schema/p"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.0.xsd http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.0.xsd http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.0.xsd http://www.springframework.org/schema/data/mongo http://www.springframework.org/schema/data/mongo/spring-mongo.xsd">
+
+	<!-- spring上下文工具 -->
+	<bean id="myApplicationContext" class="com.csu.vlab.atlas.framework.utils.MyApplicationContext"></bean>
+
+	<!-- 变量配置 -->
+	<bean id="atlasPropertyConfigurer"
+		class="com.csu.vlab.atlas.common.constants.AtlasPropertyConfigurer">
+		<property name="locations">
+			<list>
+				<value>classpath:sysconfig.properties</value>
+				<value>classpath:mongo.properties</value>
+			</list>
+		</property>
+	</bean>
+
+    <bean id="signBluetoothUtils" class="com.csu.vlab.atlas.controller.conf.SignBluetoothUtils"/>
+		
+	<!-- 扫描器配置 -->
+	<context:component-scan
+		base-package="com.csu.vlab.atlas.**.service.impl,com.csu.vlab.atlas.**.dao.impl"></context:component-scan>
+
+		<!-- MongoClient配置 -->
+	<mongo:mongo  id="replicaSetMongo"  replica-set="${mongodb.replica-set}">
+        <mongo:options connections-per-host="${mongodb.connections-per-host}"
+            threads-allowed-to-block-for-connection-multiplier="${mongodb.threads-allowed-to-block-for-connection-multiplier}"
+            auto-connect-retry="${mongodb.auto-connect-retry}"/>
+    </mongo:mongo>
+    
+    <bean id="mongoTemplate" class="org.springframework.data.mongodb.core.MongoTemplate">
+        <constructor-arg name="mongo" ref="replicaSetMongo"></constructor-arg>
+        <constructor-arg name="databaseName" value="${mongodb.dataname}"></constructor-arg>
+<!--         <constructor-arg name="userCredentials"> -->
+<!--             <bean class="org.springframework.data.authentication.UserCredentials"> -->
+<!-- 					<constructor-arg value="${mongodb.username}"/> -->
+<!-- 					<constructor-arg value="${mongodb.password}"/> -->
+<!-- 			</bean> -->
+<!--         </constructor-arg> -->
+    </bean>
+    
+
+	<!-- 线程池操作类 -->
+	<bean id="threadPoolUtil" class="com.csu.vlab.atlas.framework.utils.ThreadPoolUtil"
+		init-method="init" destroy-method="destory"></bean>
+
+	<bean id="signJob" class="com.csu.vlab.atlas.job.SignJob"></bean>
+
+	<bean id="signJobDetail"
+		class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+		<property name="targetObject" ref="signJob" />
+		<property name="targetMethod" value="execute" />
+	</bean>
+
+	<bean id="signJobTrigger"
+		class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+		<property name="jobDetail" ref="signJobDetail" />
+		<!-- 每60秒运行一次 -->
+		<property name="cronExpression" value="30 0/1 * * * ?" />
+	</bean>
+
+	
+	<bean id="clearSignJob" class="com.csu.vlab.atlas.job.ClearSignJob"></bean>
+
+	<bean id="clearSignJobDetail"
+		class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+		<property name="targetObject" ref="clearSignJob" />
+		<property name="targetMethod" value="execute" />
+	</bean>
+
+	<bean id="clearSignJobTrigger"
+		class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+		<property name="jobDetail" ref="clearSignJobDetail" />
+		<property name="cronExpression" value="0 0 0 * * ?" />
+	</bean>
+	
+	<bean class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
+		<property name="triggers">
+			<list>
+				<ref bean="signJobTrigger" />
+				<ref bean="clearSignJobTrigger" />
+			</list>
+		</property>
+	</bean>
+
+</beans>

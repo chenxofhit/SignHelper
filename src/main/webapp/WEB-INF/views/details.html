@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>查看今日明细</title>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<link rel="icon" type="image/x-icon" href="${rc.contextPath}/favicon.ico" /> 
+<link rel="stylesheet" href="${rc.contextPath}/css/site.min.css" />
+<link rel="stylesheet"
+	href="${rc.contextPath}/comp/bootstrap/css/bootstrap.min.css" />
+<link rel="stylesheet"
+	href="${rc.contextPath}/comp/bootstrap-validator/css/bootstrapValidator.min.css" />
+<link rel="stylesheet"
+	href="${rc.contextPath}/comp/bootstrap/css/font-awesome.min.css" />
+<script type="text/javascript" src="${rc.contextPath}/js/jquery.min.js"></script>
+<script type="text/javascript"
+	src="${rc.contextPath}/comp/bootstrap/js/bootstrap.min.js"></script>
+<script type="text/javascript"
+	src="${rc.contextPath}/comp/bootstrap-validator/js/bootstrapValidator.min.js"></script>
+
+<link rel="shortcut icon" href="${rc.contextPath}/favicon.ico" />
+
+</head>
+<body>
+	<div class="container">
+		#parse("/WEB-INF/views/common/head.html")
+		<div>
+		 iframe : 嵌入的url为:<a target='_blank'  href=$!urlStr>$!urlStr</a>, 更改日期可以看到制定日期的签到结果.
+		</div>
+		<div></div>
+		<div>
+		<iframe name="detail"
+			src="$!urlStr"
+			frameborder="0"
+			style="overflow: hidden; height: 100%; width: 100%; position: absolute;"
+			height="100%" width="100%"> </iframe>
+			</div>
+	</div>
+
+</body>
+</html>

@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>签到助手</title>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<link rel="icon" type="image/x-icon" href="${rc.contextPath}/favicon.ico" /> 
+<link rel="stylesheet" href="${rc.contextPath}/css/site.min.css" />
+<link rel="stylesheet"
+	href="${rc.contextPath}/comp/bootstrap/css/bootstrap.min.css" />
+<link rel="stylesheet"
+	href="${rc.contextPath}/comp/bootstrap-validator/css/bootstrapValidator.min.css" />
+<link rel="stylesheet"
+	href="${rc.contextPath}/comp/bootstrap/css/font-awesome.min.css" />
+<script type="text/javascript" src="${rc.contextPath}/js/jquery.min.js"></script>
+<script type="text/javascript"
+	src="${rc.contextPath}/comp/bootstrap/js/bootstrap.min.js"></script>
+<script type="text/javascript"
+	src="${rc.contextPath}/comp/bootstrap-validator/js/bootstrapValidator.min.js"></script>
+
+<link rel="stylesheet"
+	href="${rc.contextPath}/comp/bootstrap-switch/css/bootstrap-switch.css" />
+<script type="text/javascript"
+	src="${rc.contextPath}/comp/bootstrap-switch/js/bootstrap-switch.js"></script>
+<script type="text/javascript"
+	src="${rc.contextPath}/comp/layer/layer.js"></script>
+<link rel="shortcut icon" href="${rc.contextPath}/favicon.ico" />
+</head>
+<body>
+	<div class="container">
+		#parse("/WEB-INF/views/common/head.html")
+		<div class="table">
+			<table id="signtable"
+				class="table table-hover  table-condensed col-md-12">
+				<thead>
+					<tr>
+						<th class="col-md-3 text-center">尊姓大名</th>
+						<th class="col-md-3 text-center hide">Mac地址</th>
+						<th class="col-md-3 text-center">自动签到模式</th>
+						<th class="col-md-3 text-center">手动补刀模式</th>
+						 <th class="col-md-3 text-center">查看</th>
+					</tr>
+				</thead>
+				<tbody>
+				  	#foreach($userSign in $userSigns)
+				  		<tr>
+						<th class="col-md-3 text-center">$!userSign.name</th>
+						<th class="col-md-3 text-center hide">$!userSign.mac</th>
+						<th class="col-md-3 text-center"><div
+								class="switch-animate switch-small" data-on="success"
+								data-off="warning">
+								<input type="checkbox" name="my-checkbox" 
+								#if($userSign.autoSignMode == 1) checked #end
+								/>
+							</div></th>
+						<th class="col-md-3 text-center"><button
+								class="upsign  btn btn-danger">签到</button></th>
+
+						<th class="col-md-3 text-center">
+						#if($userSign.autoSignMode == 1)<button
+								class="viewautosign  btn btn-link">自动模式明细</button>#end
+							<button class="viewsign  btn btn-link">查看签到明细</button></th>
+					</tr>
+				  	#end
+				</tbody>
+			</table>
+		</div>
+		#parse("/WEB-INF/views/common/foot.html")
+
+	</div>
+
+
+	<script>
+		$(document).ready(function() {
+			$('#userlogin').bootstrapValidator();
+			$("[name='my-checkbox']").bootstrapSwitch();
+			
+			$('input[name="my-checkbox"]').on('switchChange.bootstrapSwitch', function(event, state) {
+				var row = $(this).parents('tr');
+				var mac = row.children('th:eq(1)').text();
+				
+				var checked = 0;
+				if(state){
+					checked = 1;	
+				}else{
+					checked = 0;	
+				}
+				
+				$.ajax({
+					url : "${rc.contextPath}/autosign.json",
+					type: "POST",
+			        dataType: 'json',
+			        data:{
+			        	"mac":mac,
+			        	"autoSignMode":checked
+			        },
+					success : function(result) {
+						console.log("自动签到返回结果: " + result.msg);
+						if(result.flag == 1){
+							if(checked == 1){
+								layer.msg("自动模式设置成功:) !");
+								location.reload();
+							}else{
+								layer.msg("自动模式取消成功:) !");
+								location.reload();
+							}
+						}else{
+							layer.msg("自动签到失败%>_<%, 请重试!");
+						}
+					}
+				});
+// 				 console.log(mac);
+// 				  console.log(this); // DOM element
+// 				  console.log(event); // jQuery event
+// 				  console.log(state); // true | false
+				});
+		});
+		
+		$("#signtable").each(function() {
+			//sign event
+			$('.upsign').click(function() {
+				var $btn = $(this);
+				$btn.button("loading");
+				//setTimeout(function () { $btn.button('reset');}, 10000);
+				var row = $(this).parents('tr');
+				var mac = row.children('th:eq(1)').text();
+
+				$.ajax({
+					url : "${rc.contextPath}/sign.json",
+					type: "POST",
+			        dataType: 'json',
+			        data:{
+			        	"mac":mac
+			        },
+					success : function(result) {
+					    $btn.button('reset');
+						console.log("签到返回结果: " + result.msg);
+						if(result.flag == 1){
+							layer.msg("签到成功:) !");
+						}else{
+							layer.msg("签到失败%>_<%, 请重试!");
+						}
+					}
+				});
+
+			});
+			
+			//view sign event
+			$('.viewsign').click(function() {
+				var $btn = $(this);
+				$btn.button("loading");
+				//setTimeout(function () { $btn.button('reset');}, 10000);
+				var row = $(this).parents('tr');
+				var name = row.children('th:eq(0)').text();
+
+				$.ajax({
+					url : "${rc.contextPath}/view.json?name=" + name,
+			        dataType: 'json',
+			        type: 'get',
+					success : function(result) {
+					    $btn.button('reset');
+
+						layer.open({
+						  type: 1,
+						  area: ['1200px', '200px'],
+						  fix: false, //不固定
+						  title: '今日['+ result.day + '] '+ name +'  的签到详情',
+						  closeBtn: 0,
+						  shade: 0.6,
+						  shadeClose: true,
+						  skin: 'layui-layer-rim',
+						  content: "<html><body><table class='table table-hover  table-condensed col-md-12'><tr>" +
+					        "<th>实验室</th>"+
+					        "<th>姓名</th>"+
+					        "<th>手机OS</th>"+
+					        "<th>学位</th>"+
+					        "<th>上午到达时间</th>"+
+					        "<th>上午离开时间</th>"+
+					        "<th>下午到达时间</th>"+
+					        "<th>下午离开时间</th>"+
+					        "<th>晚上到达时间</th>"+
+					        "<th>晚上离开时间</th>"+
+					        "<th>按时到勤</th>"+
+					        "<th>日在线时间(分钟)</th></tr>"+
+					        "<th>"+ result.signItemDto["lab"]+"</th>"+
+					        "<th>"+ result.signItemDto["name"]+"</th>"+
+					        "<th>"+ result.signItemDto["mos"]+"</th>"+
+					        "<th>"+ result.signItemDto["xuewei"]+"</th>"+
+					        "<th>"+ result.signItemDto["morningtime_arrive"]+"</th>"+
+					        "<th>"+ result.signItemDto["morningtime_end"]+"</th>"+
+					        "<th>"+ result.signItemDto["afternoontime_arrive"]+"</th>"+
+					        "<th>"+ result.signItemDto["afternoontime_end"]+"</th>"+
+					        "<th>"+ result.signItemDto["eveningtime_arrive"]+"</th>"+
+					        "<th>"+ result.signItemDto["eveningtime_end"]+"</th>"+
+					        "<th>"+ result.signItemDto["anshi"]+"</th>"+
+					        "<th>"+ result.signItemDto["onlineminutes"]+"</th>"+
+					    +"</table></body><html>"
+						});
+					}
+				});
+
+			});
+			
+			
+			//view sign event
+			$('.viewautosign').click(function() {
+				var $btn = $(this);
+				$btn.button("loading");
+				//setTimeout(function () { $btn.button('reset');}, 10000);
+				var row = $(this).parents('tr');
+				var mac = row.children('th:eq(1)').text();
+
+				$.ajax({
+					url : "${rc.contextPath}/viewautosign.json",
+					type: "POST",
+			        dataType: 'json',
+			        data:{
+			        	"mac":mac
+			        },
+					success : function(result) {
+					    $btn.button('reset');
+
+						layer.open({
+						  type: 1,
+						  area: ['1200px', '350px'],
+						  fix: false, //不固定
+						  title: '今日 ['+ result.day + '] 自动签到详情',
+						  closeBtn: 0,
+						  shade: 0.6,
+						  shadeClose: true,
+						  skin: 'layui-layer-rim',
+						  content: "<html><body><table class='table table-hover  table-condensed col-md-12'>" +
+					        "<tr><th>时间段</th>"+
+					        "<th>计划的签到时间</th>"+
+					        "<th>最后一次执行时间</th>"+
+					        "<th>执行次数(<=3)</th>"+
+					        "<th>签到成功?</th></tr>"+
+					        "<tr><th>上午开始时间</th>"+
+					        "<th>"+ new Date(result.userSign.signTasks[0]['date'])+"</th>"+
+					        "<th>"+ new Date(result.userSign.signTasks[0]['lastExecuteTime'])+"</th>"+
+					        "<th>"+ result.userSign.signTasks[0]['tryTimes']+"</th>"+
+					        "<th>"+ result.userSign.signTasks[0]['isSuccess']+"</th></tr>"+
+					        "<tr><th>上午离开时间</th>"+
+					        "<th>"+ new Date(result.userSign.signTasks[1]['date'])+"</th>"+
+					        "<th>"+ new Date(result.userSign.signTasks[1]['lastExecuteTime'])+"</th>"+
+					        "<th>"+ result.userSign.signTasks[1]['tryTimes']+"</th>"+
+					        "<th>"+ result.userSign.signTasks[1]['isSuccess']+"</th></tr>"+
+					        "<tr><th>下午开始时间</th>"+
+					        "<th>"+ new Date(result.userSign.signTasks[2]['date'])+"</th>"+
+					        "<th>"+ new Date(result.userSign.signTasks[2]['lastExecuteTime'])+"</th>"+
+					        "<th>"+ result.userSign.signTasks[2]['tryTimes']+"</th>"+
+					        "<th>"+ result.userSign.signTasks[2]['isSuccess']+"</th></tr>"+
+					        "<tr><th>下午离开时间</th>"+
+					        "<th>"+ new Date(result.userSign.signTasks[3]['date'])+"</th>"+
+					        "<th>"+ new Date(result.userSign.signTasks[3]['lastExecuteTime'])+"</th>"+
+					        "<th>"+ result.userSign.signTasks[3]['tryTimes']+"</th>"+
+					        "<th>"+ result.userSign.signTasks[3]['isSuccess']+"</th></tr>"+
+					        "<tr><th>晚上开始时间</th>"+
+					        "<th>"+ new Date(result.userSign.signTasks[4]['date'])+"</th>"+
+					        "<th>"+ new Date(result.userSign.signTasks[4]['lastExecuteTime'])+"</th>"+
+					        "<th>"+ result.userSign.signTasks[4]['tryTimes']+"</th>"+
+					        "<th>"+ result.userSign.signTasks[4]['isSuccess']+"</th></tr>"+
+					        "<tr><th>晚上离开时间</th>"+
+					        "<th>"+ new Date(result.userSign.signTasks[5]['date'])+"</th>"+
+					        "<th>"+ new Date(result.userSign.signTasks[5]['lastExecuteTime'])+"</th>"+
+					        "<th>"+ result.userSign.signTasks[5]['tryTimes']+"</th>"+
+					        "<th>"+ result.userSign.signTasks[5]['isSuccess']+"</th></tr>"+
+					    +"</table></body><html>"
+						});
+					}
+				});
+			});
+		});
+	</script>
+
+</body>
+</html>
